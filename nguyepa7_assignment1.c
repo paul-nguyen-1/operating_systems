@@ -1,3 +1,8 @@
+// Name: Paul Nguyen
+// Date: 04/13/2025
+// Course: CS 374 - Operating Systems
+// Programming Assignment 1: Basic Formulas
+
 #include <stdio.h>
 #include <math.h>
 
