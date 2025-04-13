@@ -9,20 +9,20 @@
 int main(void)
 {
     int n;
-    double radius;
-    double height_top;
-    double height_bottom;
-    double area;
-    double bottom;
-    double height;
-    double top_surface_area;
-    double bottom_surface_area;
-    double lateral_surface_area;
-    double surface_area;
-    double total_surface_area = 0.0;
-    double volume;
-    double total_volume = 0.0;
-    const double pi = 3.14159265359;
+    float radius;
+    float height_top;
+    float height_bottom;
+    float area;
+    float bottom;
+    float height;
+    float top_surface_area;
+    float bottom_surface_area;
+    float lateral_surface_area;
+    float surface_area;
+    float total_surface_area = 0.0;
+    float volume;
+    float total_volume = 0.0;
+    const float pi = 3.14159265359;
 
     do
     {
@@ -36,15 +36,15 @@ int main(void)
         do
         {
             printf("What is the radius of the sphere (R)? \n");
-            scanf("%lf", &radius);
+            scanf("%f", &radius);
 
             printf("What is the height of the top area of the spherical segment (ha)? \n");
-            scanf("%lf", &height_top);
+            scanf("%f", &height_top);
 
             printf("What is the height of the bottom area of the spherical segment (hb)? \n");
-            scanf("%lf", &height_bottom);
+            scanf("%f", &height_bottom);
 
-            printf("Entered data: R = %.2lf ha = %.2lf hb = %.2lf.\n",
+            printf("Entered data: R = %.2f ha = %.2f hb = %.2f.\n",
                    radius, height_top, height_bottom);
 
             if (radius <= 0 ||
@@ -75,7 +75,7 @@ int main(void)
         surface_area = top_surface_area + bottom_surface_area + lateral_surface_area;
         volume = (1.0 / 6.0) * pi * height * ((3 * (area * area)) + (3 * (bottom * bottom)) + (height * height));
 
-        printf("Total Surface Area = %.2lf Volume = %.2lf.\n", surface_area, volume);
+        printf("Total Surface Area = %.2f Volume = %.2f.\n", surface_area, volume);
 
         total_surface_area += surface_area;
         total_volume += volume;
