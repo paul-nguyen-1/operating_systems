@@ -143,7 +143,6 @@ void showMoviesByLanguage(struct movie *list, const char *language)
         printf("No movies found in the language %s\n", language);
     }
 }
-
 int main(int argc, char **argv)
 {
     if (argc < 2)
@@ -156,41 +155,42 @@ int main(int argc, char **argv)
 
     int choice;
 
-    printf("1. Show movies released in the specified year \n");
-    printf("2. Show highest rated movie for each year \n");
-    printf("3. Show the title and year of release of all movies in a specific language \n");
-    printf("4. Exit from the program \n");
-    printf("Enter a choice from 1 to 4: \n");
-    scanf("%d", &choice);
+    while (true)
+    {
+        printf("1. Show movies released in the specified year\n");
+        printf("2. Show highest rated movie for each year\n");
+        printf("3. Show the title and year of release of all movies in a specific language\n");
+        printf("4. Exit from the program\n\n");
+        printf("Enter a choice from 1 to 4: ");
+        scanf("%d", &choice);
 
-    if (choice == 1)
-    {
-        int year;
-        printf("Enter the year for which you want to see movies: ");
-        scanf("%d", &year);
-        showMoviesByYear(movieData, year);
+        if (choice == 1)
+        {
+            int year;
+            printf("Enter the year for which you want to see movies: ");
+            scanf("%d", &year);
+            showMoviesByYear(movieData, year);
+        }
+        else if (choice == 2)
+        {
+            showHighestRatedMovies(movieData);
+        }
+        else if (choice == 3)
+        {
+            char language[50];
+            printf("Enter the language for which you want to see movies: ");
+            scanf("%s", language);
+            showMoviesByLanguage(movieData, language);
+        }
+        else if (choice == 4)
+        {
+            printf("Exiting the program.\n");
+            break;
+        }
+        else
+        {
+            printf("You entered an incorrect choice. Try again.\n");
+        }
     }
-    else if (choice == 2)
-    {
-        showHighestRatedMovies(movieData);
-    }
-    else if (choice == 3)
-    {
-        char language[50];
-        printf("Enter the language you want to search for: ");
-        scanf("%s", language);
-        showMoviesByLanguage(movieData, language);
-    }
-    else if (choice == 4)
-    {
-        printf("Exiting the program.\n");
-        return 0;
-    }
-    else
-    {
-        printf("You entered an incorrect choice. Try again \n");
-        return 0;
-    }
-
-    return 0;
+    return EXIT_SUCCESS;
 }
