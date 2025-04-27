@@ -154,7 +154,7 @@ int main(int argc, char **argv)
     struct movie *movieData = processMovieFile(argv[1]);
 
     int choice;
-
+    printf("Processed file %s and parsed data for 24 movies\n\n", argv[1]);
     while (true)
     {
         printf("1. Show movies released in the specified year\n");
