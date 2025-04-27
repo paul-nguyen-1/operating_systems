@@ -91,35 +91,39 @@ void showMoviesByYear(struct movie *list, int year)
         printf("No data about movies released in the year %d\n", year);
     }
 }
+
 void showHighestRatedMovies(struct movie *list)
 {
     struct movie *curr = NULL;
-    float highestRating = 0.0;
+    struct movie *highestMovie = NULL;
+    int year;
 
-    // Find the maximum rating
-    curr = list;
-    while (curr != NULL)
-    {
-        if (curr->rating > highestRating)
-        {
-            highestRating = curr->rating;
-        }
-        curr = curr->next;
-    }
-
-    // Print each highest rated movie
-    while (highestRating >= 0.0)
+    // Iterate through each possible year
+    for (year = 1900; year <= 2025; year++)
     {
         curr = list;
+        highestMovie = NULL;
+        float highestRating = 0.0;
+
+        // Find the highest rated movie for the current year
         while (curr != NULL)
         {
-            if (curr->rating >= highestRating && curr->rating < highestRating + 0.1)
+            if (curr->year == year)
             {
-                printf("%d %.1f %s\n", curr->year, curr->rating, curr->title);
+                if (curr->rating > highestRating)
+                {
+                    highestRating = curr->rating;
+                    highestMovie = curr;
+                }
             }
             curr = curr->next;
         }
-        highestRating -= 0.1; // decrement to find next highest rating
+
+        // If a movie exists for this year, print it
+        if (highestMovie != NULL)
+        {
+            printf("%d %.1f %s\n", highestMovie->year, highestMovie->rating, highestMovie->title);
+        }
     }
 }
 
@@ -132,7 +136,7 @@ void showMoviesByLanguage(struct movie *list, const char *language)
     {
         if (curr->languages != NULL && strstr(curr->languages[0], language) != NULL)
         {
-            printf("%s (%d)\n", curr->title, curr->year);
+            printf("%d %s\n", curr->year, curr->title);
             currentLanguage = true;
         }
         curr = curr->next;
@@ -143,6 +147,7 @@ void showMoviesByLanguage(struct movie *list, const char *language)
         printf("No movies found in the language %s\n", language);
     }
 }
+
 int main(int argc, char **argv)
 {
     if (argc < 2)
