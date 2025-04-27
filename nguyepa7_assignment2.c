@@ -119,7 +119,7 @@ void showHighestRatedMovies(struct movie *list)
             curr = curr->next;
         }
 
-        // If a movie exists for this year, print it
+        // Print the highest rated movie for the current year
         if (highestMovie != NULL)
         {
             printf("%d %.1f %s\n", highestMovie->year, highestMovie->rating, highestMovie->title);
