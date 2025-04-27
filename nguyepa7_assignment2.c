@@ -5,8 +5,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-// Source code from sample file in canvas
 struct movie
 {
     char *title;
@@ -16,33 +16,78 @@ struct movie
     struct movie *next;
 };
 
+// Source code used from sample file in canvas
 struct movie *processMovieFile(char *filePath)
 {
     char *currLine = NULL;
     size_t len = 0;
-    struct movie *head = NULL; // Initialize the head of the linked list
+    struct movie *head = NULL;
+    struct movie *tail = NULL;
 
-    // Open the specified file for reading only
     FILE *movieFile = fopen(filePath, "r");
+
+    // Skip header
+    getline(&currLine, &len, movieFile);
 
     // Read the file line by line
     while (getline(&currLine, &len, movieFile) != -1)
     {
-        printf("%s", currLine);
+        // Allocate memory for new movie node
+        struct movie *newMovie = malloc(sizeof(struct movie));
+
+        // Parse and store movie data
+        char *token = strtok(currLine, ",");
+        newMovie->title = strdup(token);
+
+        token = strtok(NULL, ",");
+        newMovie->year = atoi(token);
+
+        token = strtok(NULL, ",");
+        newMovie->languages = NULL;
+
+        token = strtok(NULL, ",");
+        newMovie->rating = atoi(token);
+
+        newMovie->next = NULL;
+
+        // Add movie to the linked list
+        if (head == NULL)
+        {
+            head = newMovie;
+            tail = newMovie;
+        }
+        else
+        {
+            tail->next = newMovie;
+            tail = newMovie;
+        }
     }
-
-    // Allocate memory for a new movie node
-    struct movie *newMovie = malloc(sizeof(struct movie));
-
-    // Add the new movie to the linked list
-    newMovie->next = head;
-    head = newMovie;
 
     // Free the memory allocated by getline for currLine
     free(currLine);
     // Close the file
     fclose(movieFile);
-    return head; // Return the head of the linked list
+    return head;
+}
+
+void showMoviesByYear(struct movie *list, int year)
+{
+    int currentYear = 0;
+    struct movie *curr = list;
+    while (curr != NULL)
+    {
+        if (curr->year == year)
+        {
+            printf("%s\n", curr->title);
+            currentYear = 1;
+        }
+        curr = curr->next;
+    }
+
+    if (!currentYear)
+    {
+        printf("No data about movies released in the year %d\n", year);
+    }
 }
 
 int main(int argc, char **argv)
@@ -63,6 +108,14 @@ int main(int argc, char **argv)
     printf("3. Show the title and year of release of all movies in a specific language \n");
     printf("4. Exit from the program \n");
     scanf("%d", &choice);
+
+    if (choice == 1)
+    {
+        int year;
+        printf("Enter the year for which you want to see movies: ");
+        scanf("%d", &year);
+        showMoviesByYear(movieData, year);
+    }
 
     printf("You entered an incorrect choice. Try again \n");
     return 0;
