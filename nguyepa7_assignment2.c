@@ -45,15 +45,6 @@ struct movie *processMovieFile(char *filePath)
     return head; // Return the head of the linked list
 }
 
-struct movie
-{
-    char *title;
-    int year;
-    char **languages;
-    int rating;
-    struct movie *next;
-};
-
 int main(int argc, char **argv)
 {
     if (argc < 2)
@@ -64,17 +55,15 @@ int main(int argc, char **argv)
     }
     struct movie *movieData = processMovieFile(argv[1]);
 
-    {
-        int choice;
-        printf("Enter a choice from 1 to 4: \n");
+    int choice;
+    printf("Enter a choice from 1 to 4: \n");
 
-        printf("1. Show movies released in the specified year \n");
-        printf("2. Show highest rated movie for each year \n");
-        printf("3. Show the title and year of release of all movies in a specific language \n");
-        printf("4. Exit from the program \n");
-        scanf("%d", &choice);
+    printf("1. Show movies released in the specified year \n");
+    printf("2. Show highest rated movie for each year \n");
+    printf("3. Show the title and year of release of all movies in a specific language \n");
+    printf("4. Exit from the program \n");
+    scanf("%d", &choice);
 
-        printf("You entered an incorrect choice. Try again \n");
-        return 0;
-    }
-};
+    printf("You entered an incorrect choice. Try again \n");
+    return 0;
+}
