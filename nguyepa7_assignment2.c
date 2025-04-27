@@ -1,18 +1,19 @@
 // Name: Paul Nguyen
 // Date: 04/27/2025
 // Course: CS 374 - Operating Systems
-// Programming Assignment 2
+// Programming Assignment 2: Movies
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 struct movie
 {
     char *title;
     int year;
     char **languages;
-    int rating;
+    float rating;
     struct movie *next;
 };
 
@@ -43,10 +44,11 @@ struct movie *processMovieFile(char *filePath)
         newMovie->year = atoi(token);
 
         token = strtok(NULL, ",");
-        newMovie->languages = NULL;
+        newMovie->languages = malloc(sizeof(char *) * 1);
+        newMovie->languages[0] = strdup(token);
 
         token = strtok(NULL, ",");
-        newMovie->rating = atoi(token);
+        newMovie->rating = atof(token);
 
         newMovie->next = NULL;
 
@@ -89,6 +91,58 @@ void showMoviesByYear(struct movie *list, int year)
         printf("No data about movies released in the year %d\n", year);
     }
 }
+void showHighestRatedMovies(struct movie *list)
+{
+    struct movie *curr = NULL;
+    float highestRating = 0.0;
+
+    // Find the maximum rating
+    curr = list;
+    while (curr != NULL)
+    {
+        if (curr->rating > highestRating)
+        {
+            highestRating = curr->rating;
+        }
+        curr = curr->next;
+    }
+
+    // Print each highest rated movie
+    while (highestRating >= 0.0)
+    {
+        curr = list;
+        while (curr != NULL)
+        {
+            if (curr->rating >= highestRating && curr->rating < highestRating + 0.1)
+            {
+                printf("%d %.1f %s\n", curr->year, curr->rating, curr->title);
+            }
+            curr = curr->next;
+        }
+        highestRating -= 0.1; // decrement to find next highest rating
+    }
+}
+
+void showMoviesByLanguage(struct movie *list, const char *language)
+{
+    struct movie *curr = list;
+    bool currentLanguage = false; // flag if any movie is matches with language
+
+    while (curr != NULL)
+    {
+        if (curr->languages != NULL && strstr(curr->languages[0], language) != NULL)
+        {
+            printf("%s (%d)\n", curr->title, curr->year);
+            currentLanguage = true;
+        }
+        curr = curr->next;
+    }
+
+    if (!currentLanguage)
+    {
+        printf("No movies found in the language %s\n", language);
+    }
+}
 
 int main(int argc, char **argv)
 {
@@ -101,12 +155,12 @@ int main(int argc, char **argv)
     struct movie *movieData = processMovieFile(argv[1]);
 
     int choice;
-    printf("Enter a choice from 1 to 4: \n");
 
     printf("1. Show movies released in the specified year \n");
     printf("2. Show highest rated movie for each year \n");
     printf("3. Show the title and year of release of all movies in a specific language \n");
     printf("4. Exit from the program \n");
+    printf("Enter a choice from 1 to 4: \n");
     scanf("%d", &choice);
 
     if (choice == 1)
@@ -116,7 +170,27 @@ int main(int argc, char **argv)
         scanf("%d", &year);
         showMoviesByYear(movieData, year);
     }
+    else if (choice == 2)
+    {
+        showHighestRatedMovies(movieData);
+    }
+    else if (choice == 3)
+    {
+        char language[50];
+        printf("Enter the language you want to search for: ");
+        scanf("%s", language);
+        showMoviesByLanguage(movieData, language);
+    }
+    else if (choice == 4)
+    {
+        printf("Exiting the program.\n");
+        return 0;
+    }
+    else
+    {
+        printf("You entered an incorrect choice. Try again \n");
+        return 0;
+    }
 
-    printf("You entered an incorrect choice. Try again \n");
     return 0;
 }
