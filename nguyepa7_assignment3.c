@@ -133,7 +133,7 @@ struct movie *processMovieFile(char *filePath)
 void processFile(char *filePath)
 {
     struct movie *movies = processMovieFile(filePath);
-    int randomNumber = rand() % 100000;
+    int randomNumber = rand();
     char directory[256];
     snprintf(directory, sizeof(directory), "nguyepa7.movies.%d", randomNumber);
 
