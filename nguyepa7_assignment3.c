@@ -1,7 +1,7 @@
 // Name: Paul Nguyen
-// Date: 04/27/2025
+// Date: 5/4/2025
 // Course: CS 374 - Operating Systems
-// Programming Assignment 2: Movies
+// Programming Assignment 3: FileSearch
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 struct movie
 {
@@ -62,7 +64,7 @@ int getFile(char *filePath, int choice) // 1 = largest, 2 = smallest, 3 = name
                     }
                 }
             }
-            else if (choice == 3) // find file name
+            else if (choice == 3) // file name
             {
                 if (strcmp(entry->d_name, filePath) == 0)
                 {
@@ -78,24 +80,97 @@ int getFile(char *filePath, int choice) // 1 = largest, 2 = smallest, 3 = name
     return fileFound;
 }
 
-// code from assignment 2
-void showMoviesByYear(struct movie *list, int year)
+// Source code used from assignment 2
+struct movie *processMovieFile(char *filePath)
 {
-    int currentYear = 0;
-    struct movie *curr = list;
+    char *currLine = NULL;
+    size_t len = 0;
+    struct movie *head = NULL;
+    struct movie *tail = NULL;
+
+    FILE *movieFile = fopen(filePath, "r");
+
+    // Skip header
+    getline(&currLine, &len, movieFile);
+
+    // Read the file line by line
+    while (getline(&currLine, &len, movieFile) != -1)
+    {
+        // Allocate memory for new movie node
+        struct movie *newMovie = malloc(sizeof(struct movie));
+
+        // Parse and store movie data
+        char *token = strtok(currLine, ",");
+        newMovie->title = strdup(token);
+
+        token = strtok(NULL, ",");
+        newMovie->year = atoi(token);
+
+        token = strtok(NULL, ",");
+        token = strtok(NULL, ",");
+
+        newMovie->next = NULL;
+
+        // Add movie to the linked list
+        if (head == NULL)
+        {
+            head = newMovie;
+            tail = newMovie;
+        }
+        else
+        {
+            tail->next = newMovie;
+            tail = newMovie;
+        }
+    }
+
+    // Free the memory allocated by getline for currLine
+    free(currLine);
+    // Close the file
+    fclose(movieFile);
+    return head;
+}
+
+void processFile(char *filePath)
+{
+    struct movie *movies = processMovieFile(filePath);
+    int randomNumber = rand() % 100000;
+    char directory[256];
+    snprintf(directory, sizeof(directory), "nguyepa7.movies.%d", randomNumber);
+
+    if (mkdir(directory, 0750) != 0)
+    {
+        return;
+    }
+
+    printf("Created directory with name %s\n", directory);
+
+    struct movie *curr = movies;
     while (curr != NULL)
     {
-        if (curr->year == year)
+        char fileName[256];
+        snprintf(fileName, sizeof(fileName), "%s/%d.txt", directory, curr->year);
+
+        FILE *fp = fopen(fileName, "a");
+        if (fp == NULL)
         {
-            printf("%s\n", curr->title);
-            currentYear = 1;
+            curr = curr->next;
+            continue;
         }
+
+        fprintf(fp, "%s\n", curr->title);
+        fclose(fp);
+        chmod(fileName, 0640);
+
         curr = curr->next;
     }
 
-    if (!currentYear)
+    while (movies != NULL)
     {
-        printf("No data about movies released in the year %d\n", year);
+        struct movie *temp = movies;
+        movies = movies->next;
+        free(temp->title);
+        free(temp);
     }
 }
 
@@ -103,6 +178,7 @@ int main(int argc, char **argv)
 {
     int choice;
     char filePath[256];
+    srand(time(NULL));
 
     while (true)
     {
@@ -128,6 +204,7 @@ int main(int argc, char **argv)
                     if (getFile(filePath, fileChoice))
                     {
                         printf("Now processing the chosen file named %s\n", filePath);
+                        processFile(filePath);
                         break;
                     }
                     else
@@ -143,6 +220,7 @@ int main(int argc, char **argv)
                     if (getFile(filePath, 3))
                     {
                         printf("Now processing the chosen file named %s\n", filePath);
+                        processFile(filePath);
                         break;
                     }
                     else
