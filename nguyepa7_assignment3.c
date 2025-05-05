@@ -147,7 +147,7 @@ void processFile(char *filePath)
     struct movie *curr = movies;
     while (curr != NULL)
     {
-        char fileName[256];
+        char fileName[512];
         snprintf(fileName, sizeof(fileName), "%s/%d.txt", directory, curr->year);
 
         FILE *fp = fopen(fileName, "a");
