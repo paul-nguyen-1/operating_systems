@@ -11,7 +11,6 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
 
 struct movie
 {
