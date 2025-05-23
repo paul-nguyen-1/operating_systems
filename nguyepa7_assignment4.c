@@ -1,3 +1,8 @@
+// Name: Paul Nguyen
+// Date: 5/25/2025
+// Course: CS 374 - Operating Systems
+// Programming Assignment 4: SMALLSH
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -5,6 +10,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <signal.h>
 
 #define INPUT_LENGTH 2048
 #define MAX_ARGS 512
@@ -17,6 +23,26 @@ struct command_line
     char *output_file;
     bool is_bg;
 };
+
+int is_foreground_only = 0;
+
+// Handler for SIGSTP to check foreground only mode
+void handle_SIGTSTP(int signo)
+{
+    if (is_foreground_only == 0)
+    {
+        char *message = "\nEntering foreground-only mode (& is now ignored)\n: ";
+        write(STDOUT_FILENO, message, strlen(message));
+        is_foreground_only = 1;
+    }
+    else
+    {
+        char *message = "\nExiting foreground-only mode\n: ";
+        write(STDOUT_FILENO, message, strlen(message));
+        is_foreground_only = 0;
+    }
+    fflush(stdout);
+}
 
 struct command_line *parse_input()
 {
@@ -57,36 +83,62 @@ struct command_line *parse_input()
         token = strtok(NULL, " \n");
     }
 
-    // Check if last argument is "&"
-    if (curr_command->argc > 0 && strcmp(curr_command->argv[curr_command->argc - 1], "&") == 0)
+    if (is_foreground_only)
     {
-        curr_command->is_bg = true;
+        curr_command->is_bg = false;
     }
+
     return curr_command;
 }
 
 int main()
 {
-    struct command_line *curr_command;
-    int exit_status = 0; // track exit status of last foreground process
+    struct sigaction SIGINT_action = {0}, SIGTSTP_action = {0};
+    
+    SIGINT_action.sa_handler = SIG_IGN;
+    sigfillset(&SIGINT_action.sa_mask);
+    sigaction(SIGINT, &SIGINT_action, NULL);
 
-    while (true)
+    SIGTSTP_action.sa_handler = handle_SIGTSTP;
+    sigfillset(&SIGTSTP_action.sa_mask);
+    SIGTSTP_action.sa_flags = SA_RESTART;
+    sigaction(SIGTSTP, &SIGTSTP_action, NULL);
+
+    struct command_line *curr_command;
+    int exit_status = 0;
+
+    while (1)
     {
+        // Check any completed background processes
+        int child_status;
+        pid_t done_pid;
+        while ((done_pid = waitpid(-1, &child_status, WNOHANG)) > 0)
+        {
+            printf("background pid %d is done: ", done_pid);
+            if (WIFEXITED(child_status))
+            {
+                printf("exit value %d\n", WEXITSTATUS(child_status));
+            }
+            else if (WIFSIGNALED(child_status))
+            {
+                printf("terminated by signal %d\n", WTERMSIG(child_status));
+            }
+            fflush(stdout);
+        }
+
         curr_command = parse_input();
-        // blank line or comment
         if (curr_command == NULL)
         {
             continue;
         }
 
-        // Built-in command: exit
+        // Built-in command for exit
         if (strcmp(curr_command->argv[0], "exit") == 0)
         {
-            // In a future version: kill background processes before exiting
             exit(0);
         }
 
-        // Built-in command: cd
+        // Built-in command for cd
         else if (strcmp(curr_command->argv[0], "cd") == 0)
         {
             // If path is provided
@@ -97,17 +149,16 @@ int main()
                     perror("cd");
                 }
             }
-            // No path provided — go to $HOME
+            // No path provided
             else
             {
                 chdir(getenv("HOME"));
             }
         }
 
-        // Built-in command: status
+        // Built-in command for status
         else if (strcmp(curr_command->argv[0], "status") == 0)
         {
-            // Display last foreground process's status
             if (WIFEXITED(exit_status))
             {
                 printf("exit value %d\n", WEXITSTATUS(exit_status));
@@ -119,10 +170,8 @@ int main()
             fflush(stdout);
         }
 
-        // Non-built-in commands
         else
         {
-            // modified code snippet from canvas
             pid_t spawnpid = fork();
 
             switch (spawnpid)
@@ -132,13 +181,26 @@ int main()
                 exit(1);
                 break;
 
-            case 0: // child
+            case 0:
+                if (!curr_command->is_bg)
+                {
+                    SIGINT_action.sa_handler = SIG_DFL;
+                }
+                else
+                {
+                    SIGINT_action.sa_handler = SIG_IGN;
+                }
+                sigaction(SIGINT, &SIGINT_action, NULL);
+                SIGTSTP_action.sa_handler = SIG_IGN;
+                sigaction(SIGTSTP, &SIGTSTP_action, NULL);
+
+                // handle input redirection
                 if (curr_command->input_file != NULL)
                 {
                     int input_fd = open(curr_command->input_file, O_RDONLY);
                     if (input_fd == -1)
                     {
-                        perror("cannot open input file");
+                        fprintf(stderr, "cannot open %s for input\n", curr_command->input_file);
                         exit(1);
                     }
                     dup2(input_fd, 0);
@@ -164,14 +226,25 @@ int main()
                 exit(1);
                 break;
 
-            default: // parent
-                int child_status;
-                waitpid(spawnpid, &child_status, 0);
-                exit_status = child_status;
+            default:
+                if (curr_command->is_bg)
+                {
+                    printf("background pid is %d\n", spawnpid);
+                    fflush(stdout);
+                }
+                else
+                {
+                    waitpid(spawnpid, &exit_status, 0);
+                    if (WIFSIGNALED(exit_status))
+                    {
+                        printf("terminated by signal %d\n", WTERMSIG(exit_status));
+                        fflush(stdout);
+                    }
+                }
                 break;
             }
         }
     }
 
-    return EXIT_SUCCESS;
+    return 0;
 }
