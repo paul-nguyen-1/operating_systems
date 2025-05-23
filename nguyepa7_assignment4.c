@@ -26,7 +26,7 @@ struct command_line
 
 int is_foreground_only = 0;
 
-// Handler for SIGSTP to check foreground only mode
+// for SIGSTP to check foreground only mode
 void handle_SIGTSTP(int signo)
 {
     if (is_foreground_only == 0)
