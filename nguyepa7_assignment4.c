@@ -44,6 +44,36 @@ void handle_SIGTSTP(int signo)
     fflush(stdout);
 }
 
+// helper function to install signal handlers
+void install_handler(int signum, void (*handler)(int), int flags)
+{
+    struct sigaction sig = {0};
+    sig.sa_handler = handler;
+    sig.sa_flags = flags;
+    sigfillset(&sig.sa_mask);
+    sigaction(signum, &sig, NULL);
+}
+
+// helper function to check background processes
+void check_background_processes()
+{
+    int child_status;
+    pid_t done_pid;
+    while ((done_pid = waitpid(-1, &child_status, WNOHANG)) > 0)
+    {
+        printf("background pid %d is done: ", done_pid);
+        if (WIFEXITED(child_status))
+        {
+            printf("exit value %d\n", WEXITSTATUS(child_status));
+        }
+        else if (WIFSIGNALED(child_status))
+        {
+            printf("terminated by signal %d\n", WTERMSIG(child_status));
+        }
+        fflush(stdout);
+    }
+}
+
 struct command_line *parse_input()
 {
     char input[INPUT_LENGTH];
@@ -93,38 +123,15 @@ struct command_line *parse_input()
 
 int main()
 {
-    struct sigaction SIGINT_action = {0}, SIGTSTP_action = {0};
-    
-    SIGINT_action.sa_handler = SIG_IGN;
-    sigfillset(&SIGINT_action.sa_mask);
-    sigaction(SIGINT, &SIGINT_action, NULL);
-
-    SIGTSTP_action.sa_handler = handle_SIGTSTP;
-    sigfillset(&SIGTSTP_action.sa_mask);
-    SIGTSTP_action.sa_flags = SA_RESTART;
-    sigaction(SIGTSTP, &SIGTSTP_action, NULL);
+    install_handler(SIGINT, SIG_IGN, 0);
+    install_handler(SIGTSTP, handle_SIGTSTP, SA_RESTART);
 
     struct command_line *curr_command;
     int exit_status = 0;
 
     while (1)
     {
-        // Check any completed background processes
-        int child_status;
-        pid_t done_pid;
-        while ((done_pid = waitpid(-1, &child_status, WNOHANG)) > 0)
-        {
-            printf("background pid %d is done: ", done_pid);
-            if (WIFEXITED(child_status))
-            {
-                printf("exit value %d\n", WEXITSTATUS(child_status));
-            }
-            else if (WIFSIGNALED(child_status))
-            {
-                printf("terminated by signal %d\n", WTERMSIG(child_status));
-            }
-            fflush(stdout);
-        }
+        check_background_processes();
 
         curr_command = parse_input();
         if (curr_command == NULL)
@@ -135,6 +142,7 @@ int main()
         // Built-in command for exit
         if (strcmp(curr_command->argv[0], "exit") == 0)
         {
+            kill(0, SIGTERM);
             exit(0);
         }
 
@@ -184,15 +192,13 @@ int main()
             case 0:
                 if (!curr_command->is_bg)
                 {
-                    SIGINT_action.sa_handler = SIG_DFL;
+                    install_handler(SIGINT, SIG_DFL, 0);
                 }
                 else
                 {
-                    SIGINT_action.sa_handler = SIG_IGN;
+                    install_handler(SIGINT, SIG_IGN, 0);
                 }
-                sigaction(SIGINT, &SIGINT_action, NULL);
-                SIGTSTP_action.sa_handler = SIG_IGN;
-                sigaction(SIGTSTP, &SIGTSTP_action, NULL);
+                install_handler(SIGTSTP, SIG_IGN, 0);
 
                 // handle input redirection
                 if (curr_command->input_file != NULL)
