@@ -185,7 +185,6 @@ int main()
             switch (spawnpid)
             {
             case -1:
-                perror("fork() failed!");
                 exit(1);
                 break;
 
