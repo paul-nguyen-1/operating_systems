@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <errno.h>
 
 void error(const char *msg)
 {
@@ -79,6 +80,10 @@ static void sendAll(int fd, const char *buffer, size_t length)
     while (length)
     {
         ssize_t sent = send(fd, buffer, length, 0);
+
+        if (sent < 0 && errno == EINTR)
+            continue;
+
         if (sent < 0)
         {
             perror("send");
@@ -86,7 +91,7 @@ static void sendAll(int fd, const char *buffer, size_t length)
         }
         if (sent == 0)
         {
-            fprintf(stderr, "sendAll connection closed\n");
+            fprintf(stderr, "sendAll: connection closed\n");
             exit(1);
         }
         buffer += sent;
