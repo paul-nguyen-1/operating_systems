@@ -147,6 +147,9 @@ int main(int argc, char *argv[])
             continue;
         }
 
+        int status;
+        while (waitpid(-1, &status, WNOHANG) > 0){}
+
         pid_t pid = fork();
         if (pid < 0)
         {

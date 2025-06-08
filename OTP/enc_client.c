@@ -101,6 +101,43 @@ static void sendAll(int fd, const char *buffer, size_t length)
     }
 }
 
+static char *readLine(int sockFD)
+{
+    size_t bufSize = 32;
+    char *buffer = malloc(bufSize);
+    if (!buffer)
+    {
+        perror("malloc");
+        exit(1);
+    }
+
+    size_t i = 0;
+    char character;
+    while (recv(sockFD, &character, 1, 0) == 1)
+    {
+        if (character == '\n')
+        {
+            break;
+        }
+
+        if (i >= bufSize - 1)
+        {
+            bufSize *= 2;
+            buffer = realloc(buffer, bufSize);
+            if (!buffer)
+            {
+                perror("realloc");
+                exit(1);
+            }
+        }
+
+        buffer[i++] = character;
+    }
+
+    buffer[i] = '\0';
+    return buffer;
+}
+
 int main(int argc, char *argv[])
 {
     if (argc != 4)
@@ -138,23 +175,9 @@ int main(int argc, char *argv[])
     }
 
     char clientID[] = "enc_client\n";
-    if (sendAll(socketFD, clientID, strlen(clientID)), 0)
-    {
-        error("CLIENT: send error");
-    }
+    sendAll(socketFD, clientID, strlen(clientID));
 
-    char serverResponse[32];
-    memset(serverResponse, '\0', sizeof(serverResponse));
-    if (recv(socketFD, serverResponse, sizeof(serverResponse) - 1, 0) < 0)
-    {
-        error("CLIENT: recv error");
-    }
-
-    size_t len = strlen(serverResponse);
-    if (len && serverResponse[len - 1] == '\n')
-    {
-        serverResponse[len - 1] = '\0';
-    }
+    char *serverResponse = readLine(socketFD);
 
     if (strcmp(serverResponse, "enc_server") != 0)
     {
@@ -168,20 +191,9 @@ int main(int argc, char *argv[])
     sendAll(socketFD, key, keyLength);
     sendAll(socketFD, "\n", 1);
 
-    cipherText = malloc(plainTextLength + 2);
-    if (!cipherText)
-    {
-        fprintf(stderr, "enc_client: memory allocation failed\n");
-        exit(1);
-    }
-
-    memset(cipherText, '\0', plainTextLength + 2);
-    if (recv(socketFD, cipherText, plainTextLength + 1, 0) < 0)
-    {
-        error("CLIENT: recv error");
-    }
-
+    char *cipherText = readLine(socketFD);
     printf("%s\n", cipherText);
+    free(cipherText);
 
     close(socketFD);
     return 0;
