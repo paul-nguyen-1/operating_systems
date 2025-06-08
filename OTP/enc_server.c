@@ -5,88 +5,158 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-// Error function used for reporting issues
+#include <sys/wait.h>
+
 void error(const char *msg)
 {
     perror(msg);
     exit(1);
 }
-// Set up the address struct for the server socket
-void setupAddressStruct(struct sockaddr_in *address,
-                        int portNumber)
+
+void setupAddressStruct(struct sockaddr_in *address, int portNumber)
 {
-    // Clear out the address struct
     memset((char *)address, '\0', sizeof(*address));
-    // The address should be network capable
     address->sin_family = AF_INET;
-    // Store the port number
     address->sin_port = htons(portNumber);
-    // Allow a client at any address to connect to this server
     address->sin_addr.s_addr = INADDR_ANY;
 }
+
+static char *readLine(int sockFD)
+{
+    size_t bufSize = 1024;
+    char *buffer = malloc(bufSize);
+    if (!buffer)
+    {
+        fprintf(stderr, "enc_server: memory allocation failed\n");
+        exit(1);
+    }
+
+    size_t i = 0;
+    char character;
+    while (recv(sockFD, &character, 1, 0) == 1)
+    {
+        if (character == '\n')
+            break;
+
+        if (i >= bufSize - 1)
+        {
+            bufSize *= 2;
+            buffer = realloc(buffer, bufSize);
+            if (!buffer)
+            {
+                fprintf(stderr, "enc_server: memory reallocation failed\n");
+                exit(1);
+            }
+        }
+        buffer[i++] = character;
+    }
+    buffer[i] = '\0';
+    return buffer;
+}
+
+static int charToIndex(char symbol)
+{
+    return (symbol == ' ') ? 26 : symbol - 'A';
+}
+
+static char indexToChar(int value)
+{
+    return (value == 26) ? ' ' : 'A' + value;
+}
+
+static char *encryptText(const char *plainText, const char *keyText)
+{
+    size_t length = strlen(plainText);
+    char *cipheredText = malloc(length + 1);
+    if (!cipheredText)
+    {
+        fprintf(stderr, "enc_server: memory allocation failed\n");
+        exit(1);
+    }
+
+    for (size_t pos = 0; pos < length; pos++)
+    {
+        int plainVal = charToIndex(plainText[pos]);
+        int keyVal = charToIndex(keyText[pos]);
+        int cipherVal = (plainVal + keyVal) % 27;
+        cipheredText[pos] = indexToChar(cipherVal);
+    }
+    cipheredText[length] = '\0';
+    return cipheredText;
+}
+
 int main(int argc, char *argv[])
 {
-    int connectionSocket, charsRead;
-    char buffer[256];
     struct sockaddr_in serverAddress, clientAddress;
-    socklen_t sizeOfClientInfo = sizeof(clientAddress);
-    // Check usage & args
     if (argc < 2)
     {
         fprintf(stderr, "USAGE: %s port\n", argv[0]);
         exit(1);
     }
-    // Create the socket that will listen for connections
+
     int listenSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (listenSocket < 0)
-    {
         error("ERROR opening socket");
-    }
-    // Set up the address struct for the server socket
+
     setupAddressStruct(&serverAddress, atoi(argv[1]));
-    // Associate the socket to the port
-    if (bind(listenSocket,
-             (struct sockaddr *)&serverAddress,
-             sizeof(serverAddress)) < 0)
-    {
+
+    if (bind(listenSocket, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0)
         error("ERROR on binding");
-    }
-    // Start listening for connetions. Allow up to 5 connections to queue up
+
     listen(listenSocket, 5);
-    // Accept a connection, blocking if one is not available until one connects
+
     while (1)
     {
-        // Accept the connection request which creates a connection socket
-        connectionSocket = accept(listenSocket,
-                                  (struct sockaddr *)&clientAddress,
-                                  &sizeOfClientInfo);
+        socklen_t sizeOfClientInfo = sizeof(clientAddress);
+        int connectionSocket = accept(listenSocket, (struct sockaddr *)&clientAddress, &sizeOfClientInfo);
         if (connectionSocket < 0)
         {
             error("ERROR on accept");
+            continue;
         }
-        printf("SERVER: Connected to client running at host %d port %d\n",
-               ntohs(clientAddress.sin_addr.s_addr),
-               ntohs(clientAddress.sin_port));
-        // Get the message from the client and display it
-        memset(buffer, '\0', 256);
-        // Read the client's message from the socket
-        charsRead = recv(connectionSocket, buffer, 255, 0);
-        if (charsRead < 0)
+
+        pid_t pid = fork();
+        if (pid < 0)
         {
-            error("ERROR reading from socket");
+            error("ERROR on fork");
+            close(connectionSocket);
+            continue;
         }
-        printf("SERVER: I received this from the client: \"%s\"\n", buffer);
-        // Send a Success message back to the client
-        charsRead = send(connectionSocket,
-                         "I am the server, and I got your message", 39, 0);
-        if (charsRead < 0)
+
+        if (pid == 0)
         {
-            error("ERROR writing to socket");
+            close(listenSocket);
+
+            char *clientID = readLine(connectionSocket);
+            if (strcmp(clientID, "enc_client") != 0)
+            {
+                send(connectionSocket, "REJECT\n", strlen("REJECT\n"), 0);
+                close(connectionSocket);
+                exit(0);
+            }
+            send(connectionSocket, "enc_server\n", strlen("enc_server\n"), 0);
+
+            char *plaintext = readLine(connectionSocket);
+            char *key = readLine(connectionSocket);
+
+            if (strlen(key) < strlen(plaintext))
+            {
+                fprintf(stderr, "enc_server: key too short\n");
+                close(connectionSocket);
+                exit(0);
+            }
+
+            char *ciphertext = encryptText(plaintext, key);
+            send(connectionSocket, ciphertext, strlen(ciphertext), 0);
+            send(connectionSocket, "\n", 1, 0);
+
+            close(connectionSocket);
+            exit(0);
         }
-        // Close the connection socket for this client
+
         close(connectionSocket);
     }
-    // Close the listening socket
+
     close(listenSocket);
     return 0;
 }
