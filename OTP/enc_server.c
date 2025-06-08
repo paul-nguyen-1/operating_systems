@@ -197,8 +197,16 @@ int main(int argc, char *argv[])
             free(plaintext);
             free(key);
 
-            sendAll(connectionSocket, ciphertext, strlen(ciphertext));
-            sendAll(connectionSocket, "\n", 1);
+            size_t ciphertext_length = strlen(ciphertext);
+            if (ciphertext_length == 0)
+            {
+                fprintf(stderr, "Error: ciphertext is empty.\n");
+            }
+            else
+            {
+                sendAll(connectionSocket, ciphertext, ciphertext_length);
+                sendAll(connectionSocket, "\n", 1);
+            }
             free(ciphertext);
 
             close(connectionSocket);
