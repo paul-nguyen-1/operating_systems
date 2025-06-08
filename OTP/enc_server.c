@@ -120,6 +120,7 @@ int main(int argc, char *argv[])
     sa.sa_handler = SIG_IGN;
     sa.sa_flags = SA_RESTART;
     sigaction(SIGCHLD, &sa, NULL);
+
     struct sockaddr_in serverAddress, clientAddress;
     if (argc < 2)
     {
@@ -152,11 +153,6 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        int status;
-        while (waitpid(-1, &status, WNOHANG) > 0)
-        {
-        }
-
         pid_t pid = fork();
         if (pid < 0)
         {
@@ -173,9 +169,12 @@ int main(int argc, char *argv[])
             if (strcmp(clientID, "enc_client") != 0)
             {
                 sendAll(connectionSocket, "REJECT\n", strlen("REJECT\n"));
+                free(clientID);
                 close(connectionSocket);
                 exit(0);
             }
+            free(clientID);
+
             sendAll(connectionSocket, "enc_server\n", strlen("enc_server\n"));
 
             char *plaintext = readLine(connectionSocket);
@@ -184,13 +183,19 @@ int main(int argc, char *argv[])
             if (strlen(key) < strlen(plaintext))
             {
                 fprintf(stderr, "enc_server: key too short\n");
+                free(plaintext);
+                free(key);
                 close(connectionSocket);
                 exit(0);
             }
 
             char *ciphertext = encryptText(plaintext, key);
+            free(plaintext);
+            free(key);
+
             sendAll(connectionSocket, ciphertext, strlen(ciphertext));
             sendAll(connectionSocket, "\n", 1);
+            free(ciphertext);
 
             close(connectionSocket);
             exit(0);

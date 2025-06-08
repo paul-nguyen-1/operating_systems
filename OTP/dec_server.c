@@ -98,7 +98,6 @@ static void sendAll(int fd, const char *buffer, size_t length)
         {
             continue;
         }
-
         if (sent < 0)
         {
             perror("send");
@@ -153,11 +152,6 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        int status;
-        while (waitpid(-1, &status, WNOHANG) > 0)
-        {
-        }
-
         pid_t pid = fork();
         if (pid < 0)
         {
@@ -174,9 +168,12 @@ int main(int argc, char *argv[])
             if (strcmp(clientID, "dec_client") != 0)
             {
                 sendAll(socketFD, "REJECT\n", strlen("REJECT\n"));
+                free(clientID);
                 close(socketFD);
                 exit(0);
             }
+            free(clientID);
+
             sendAll(socketFD, "dec_server\n", strlen("dec_server\n"));
 
             char *ciphertext = readLine(socketFD);
@@ -185,13 +182,19 @@ int main(int argc, char *argv[])
             if (strlen(key) < strlen(ciphertext))
             {
                 fprintf(stderr, "dec_server: key too short\n");
+                free(ciphertext);
+                free(key);
                 close(socketFD);
                 exit(0);
             }
 
             char *plaintext = decryptText(ciphertext, key);
+            free(ciphertext);
+            free(key);
+
             sendAll(socketFD, plaintext, strlen(plaintext));
             sendAll(socketFD, "\n", 1);
+            free(plaintext);
 
             close(socketFD);
             exit(0);
