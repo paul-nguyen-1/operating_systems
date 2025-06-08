@@ -146,11 +146,14 @@ int main(int argc, char *argv[])
     while (1)
     {
         socklen_t sizeOfClientInfo = sizeof(clientAddress);
-        int connectionSocket = accept(listenSocket, (struct sockaddr *)&clientAddress, &sizeOfClientInfo);
-        if (connectionSocket < 0)
+        int connectionSocket;
+        while ((connectionSocket = accept(listenSocket, (struct sockaddr *)&clientAddress, &sizeOfClientInfo)) < 0)
         {
+            if (errno == EINTR)
+            {
+                continue;
+            }
             error("ERROR on accept");
-            continue;
         }
 
         pid_t pid = fork();
