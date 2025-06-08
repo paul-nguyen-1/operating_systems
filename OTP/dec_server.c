@@ -85,6 +85,18 @@ static char *decryptText(const char *cipherText, const char *keyText)
     return plainText;
 }
 
+void sendAll(int fd, const char *buffer, size_t length)
+{
+    while (length > 0)
+    {
+        ssize_t sent = send(fd, buffer, length, 0);
+        if (sent <= 0)
+            break;
+        buffer += sent;
+        length -= sent;
+    }
+}
+
 int main(int argc, char *argv[])
 {
     struct sockaddr_in serverAddress, clientAddress;
@@ -147,8 +159,8 @@ int main(int argc, char *argv[])
             }
 
             char *plaintext = decryptText(ciphertext, key);
-            send(socketFD, plaintext, strlen(plaintext), 0);
-            send(socketFD, "\n", 1, 0);
+            sendAll(socketFD, plaintext, strlen(plaintext));
+            sendAll(socketFD, "\n", 1);
 
             close(socketFD);
             exit(0);

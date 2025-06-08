@@ -85,6 +85,18 @@ static char *encryptText(const char *plainText, const char *keyText)
     return cipheredText;
 }
 
+void sendAll(int fd, const char *buffer, size_t length)
+{
+    while (length > 0)
+    {
+        ssize_t sent = send(fd, buffer, length, 0);
+        if (sent <= 0)
+            break;
+        buffer += sent;
+        length -= sent;
+    }
+}
+
 int main(int argc, char *argv[])
 {
     struct sockaddr_in serverAddress, clientAddress;
@@ -147,8 +159,8 @@ int main(int argc, char *argv[])
             }
 
             char *ciphertext = encryptText(plaintext, key);
-            send(connectionSocket, ciphertext, strlen(ciphertext), 0);
-            send(connectionSocket, "\n", 1, 0);
+            sendAll(connectionSocket, ciphertext, strlen(ciphertext));
+            sendAll(connectionSocket, "\n", 1);
 
             close(connectionSocket);
             exit(0);
