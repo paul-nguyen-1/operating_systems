@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
             char *clientID = readLine(connectionSocket);
             if (strcmp(clientID, "enc_client") != 0)
             {
-                send(connectionSocket, "REJECT\n", strlen("REJECT\n"), 0);
+                sendAll(connectionSocket, "REJECT\n", strlen("REJECT\n"));
                 close(connectionSocket);
                 exit(0);
             }

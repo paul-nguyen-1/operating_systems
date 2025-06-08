@@ -162,11 +162,11 @@ int main(int argc, char *argv[])
             char *clientID = readLine(socketFD);
             if (strcmp(clientID, "dec_client") != 0)
             {
-                send(socketFD, "REJECT\n", strlen("REJECT\n"), 0);
+                sendAll(socketFD, "REJECT\n", strlen("REJECT\n"));
                 close(socketFD);
                 exit(0);
             }
-            send(socketFD, "dec_server\n", strlen("dec_server\n"), 0);
+            sendAll(socketFD, "dec_server\n", strlen("dec_server\n"));
 
             char *ciphertext = readLine(socketFD);
             char *key = readLine(socketFD);
