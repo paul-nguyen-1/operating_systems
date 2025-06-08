@@ -150,8 +150,8 @@ int main(int argc, char *argv[])
 
     sendAll(socketFD, ciphertext, cipherLength);
     sendAll(socketFD, "\n", 1);
-    send(socketFD, key, keyLength, 0);
-    send(socketFD, "\n", 1, 0);
+    sendAll(socketFD, key, keyLength);
+    sendAll(socketFD, "\n", 1);
 
     plaintext = malloc(cipherLength + 2);
     if (!plaintext)

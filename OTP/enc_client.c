@@ -141,8 +141,8 @@ int main(int argc, char *argv[])
 
     sendAll(socketFD, plaintext, plainTextLength);
     sendAll(socketFD, "\n", 1);
-    send(socketFD, key, keyLength, 0);
-    send(socketFD, "\n", 1, 0);
+    sendAll(socketFD, key, keyLength);
+    sendAll(socketFD, "\n", 1);
 
     cipherText = malloc(plainTextLength + 2);
     if (!cipherText)
