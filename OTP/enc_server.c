@@ -193,6 +193,7 @@ int main(int argc, char *argv[])
             }
 
             char *ciphertext = encryptText(plaintext, key);
+            printf("ciphertext generated: %s\n", ciphertext);
             free(plaintext);
             free(key);
 
