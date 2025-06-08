@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <errno.h>
 
 void error(const char *msg)
 {
@@ -77,13 +78,21 @@ static void validateInput(const char *text)
     }
 }
 
-void sendAll(int fd, const char *buffer, size_t length)
+static void sendAll(int fd, const char *buffer, size_t length)
 {
-    while (length > 0)
+    while (length)
     {
         ssize_t sent = send(fd, buffer, length, 0);
-        if (sent <= 0)
-            break;
+        if (sent < 0)
+        {
+            perror("send");
+            exit(1);
+        }
+        if (sent == 0)
+        {
+            fprintf(stderr, "sendAll connection closed\n");
+            exit(1);
+        }
         buffer += sent;
         length -= sent;
     }
