@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <signal.h>
 
 void error(const char *msg)
 {
@@ -115,6 +116,11 @@ static void sendAll(int fd, const char *buffer, size_t length)
 
 int main(int argc, char *argv[])
 {
+    struct sigaction sa = {0};
+    sa.sa_handler = SIG_IGN;
+    sa.sa_flags = SA_RESTART;
+    sigaction(SIGCHLD, &sa, NULL);
+
     struct sockaddr_in serverAddress, clientAddress;
     if (argc < 2)
     {
@@ -148,7 +154,9 @@ int main(int argc, char *argv[])
         }
 
         int status;
-        while (waitpid(-1, &status, WNOHANG) > 0){}
+        while (waitpid(-1, &status, WNOHANG) > 0)
+        {
+        }
 
         pid_t pid = fork();
         if (pid < 0)
