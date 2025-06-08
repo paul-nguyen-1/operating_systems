@@ -185,13 +185,14 @@ int main(int argc, char *argv[])
         close(socketFD);
         exit(2);
     }
+    free(serverResponse);
 
     sendAll(socketFD, plaintext, plainTextLength);
     sendAll(socketFD, "\n", 1);
     sendAll(socketFD, key, keyLength);
     sendAll(socketFD, "\n", 1);
 
-    char *cipherText = readLine(socketFD);
+    cipherText = readLine(socketFD);
     printf("%s\n", cipherText);
     free(cipherText);
 

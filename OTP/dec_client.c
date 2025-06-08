@@ -191,6 +191,7 @@ int main(int argc, char *argv[])
         close(socketFD);
         exit(2);
     }
+    free(serverResponse);
 
     sendAll(socketFD, ciphertext, cipherLength);
     sendAll(socketFD, "\n", 1);
