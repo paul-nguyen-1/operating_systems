@@ -77,6 +77,18 @@ static void validateInput(const char *text)
     }
 }
 
+void sendAll(int fd, const char *buffer, size_t length)
+{
+    while (length > 0)
+    {
+        ssize_t sent = send(fd, buffer, length, 0);
+        if (sent <= 0)
+            break;
+        buffer += sent;
+        length -= sent;
+    }
+}
+
 int main(int argc, char *argv[])
 {
     if (argc != 4)
@@ -136,8 +148,8 @@ int main(int argc, char *argv[])
         exit(2);
     }
 
-    send(socketFD, ciphertext, cipherLength, 0);
-    send(socketFD, "\n", 1, 0);
+    sendAll(socketFD, ciphertext, cipherLength);
+    sendAll(socketFD, "\n", 1);
     send(socketFD, key, keyLength, 0);
     send(socketFD, "\n", 1, 0);
 
