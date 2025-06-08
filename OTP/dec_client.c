@@ -70,7 +70,7 @@ static void validateInput(const char *text)
     {
         if (*text != ' ' && (*text < 'A' || *text > 'Z'))
         {
-            fprintf(stderr, "dec_client: invalid character detected\n");
+            fprintf(stderr, "dec_client error: input contains bad characters\n");
             exit(1);
         }
         text++;
