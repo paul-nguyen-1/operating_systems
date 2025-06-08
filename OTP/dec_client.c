@@ -85,8 +85,9 @@ static void sendAll(int fd, const char *buffer, size_t length)
         ssize_t sent = send(fd, buffer, length, 0);
 
         if (sent < 0 && errno == EINTR)
+        {
             continue;
-
+        }
         if (sent < 0)
         {
             perror("send");
@@ -125,13 +126,14 @@ int main(int argc, char *argv[])
 
     int socketFD = socket(AF_INET, SOCK_STREAM, 0);
     if (socketFD < 0)
+    {
         error("CLIENT: ERROR opening socket");
+    }
 
     struct sockaddr_in serverAddress;
     setupAddressStruct(&serverAddress, atoi(argv[3]), "localhost");
 
-    if (connect(socketFD, (struct sockaddr *)&serverAddress,
-                sizeof(serverAddress)) < 0)
+    if (connect(socketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0)
     {
         fprintf(stderr,
                 "Error: could not contact dec_server on port %s\n",
@@ -140,17 +142,23 @@ int main(int argc, char *argv[])
     }
 
     char clientID[] = "dec_client\n";
-    if (send(socketFD, clientID, strlen(clientID), 0) < 0)
+    if (sendAll(socketFD, clientID, strlen(clientID)), 0)
+    {
         error("CLIENT: send error");
+    }
 
     char serverResponse[32];
     memset(serverResponse, '\0', sizeof(serverResponse));
     if (recv(socketFD, serverResponse, sizeof(serverResponse) - 1, 0) < 0)
+    {
         error("CLIENT: recv error");
+    }
 
     size_t respLen = strlen(serverResponse);
     if (respLen && serverResponse[respLen - 1] == '\n')
+    {
         serverResponse[respLen - 1] = '\0';
+    }
 
     if (strcmp(serverResponse, "dec_server") != 0)
     {
@@ -175,7 +183,9 @@ int main(int argc, char *argv[])
     memset(plaintext, '\0', cipherLength + 2);
 
     if (recv(socketFD, plaintext, cipherLength + 1, 0) < 0)
+    {
         error("CLIENT: recv error");
+    }
 
     printf("%s\n", plaintext);
 

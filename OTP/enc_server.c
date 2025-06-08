@@ -37,7 +37,9 @@ static char *readLine(int sockFD)
     while (recv(sockFD, &character, 1, 0) == 1)
     {
         if (character == '\n')
+        {
             break;
+        }
 
         if (i >= bufSize - 1)
         {
@@ -93,8 +95,9 @@ static void sendAll(int fd, const char *buffer, size_t length)
         ssize_t sent = send(fd, buffer, length, 0);
 
         if (sent < 0 && errno == EINTR)
+        {
             continue;
-
+        }
         if (sent < 0)
         {
             perror("send");
@@ -121,12 +124,16 @@ int main(int argc, char *argv[])
 
     int listenSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (listenSocket < 0)
+    {
         error("ERROR opening socket");
+    }
 
     setupAddressStruct(&serverAddress, atoi(argv[1]));
 
     if (bind(listenSocket, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0)
+    {
         error("ERROR on binding");
+    }
 
     listen(listenSocket, 5);
 
@@ -159,7 +166,7 @@ int main(int argc, char *argv[])
                 close(connectionSocket);
                 exit(0);
             }
-            send(connectionSocket, "enc_server\n", strlen("enc_server\n"), 0);
+            sendAll(connectionSocket, "enc_server\n", strlen("enc_server\n"));
 
             char *plaintext = readLine(connectionSocket);
             char *key = readLine(connectionSocket);
