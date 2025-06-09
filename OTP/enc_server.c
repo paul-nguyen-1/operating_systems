@@ -25,7 +25,7 @@ void setupAddressStruct(struct sockaddr_in *address, int portNumber)
 
 static char *readLine(int sockFD)
 {
-    size_t bufSize = 1024;
+    size_t bufSize = 32;
     char *buffer = malloc(bufSize);
     if (!buffer)
     {
@@ -34,26 +34,32 @@ static char *readLine(int sockFD)
     }
 
     size_t i = 0;
-    char character;
-    while (recv(sockFD, &character, 1, 0) == 1)
-    {
-        if (character == '\n')
-        {
-            break;
-        }
+    char recvBuf[1024];
+    ssize_t bytesRead;
 
-        if (i >= bufSize - 1)
+    while ((bytesRead = recv(sockFD, recvBuf, sizeof(recvBuf), 0)) > 0)
+    {
+        for (ssize_t j = 0; j < bytesRead; j++)
         {
-            bufSize *= 2;
-            buffer = realloc(buffer, bufSize);
-            if (!buffer)
+            if (recvBuf[j] == '\n')
             {
-                fprintf(stderr, "enc_server: memory reallocation failed\n");
-                exit(1);
+                buffer[i] = '\0';
+                return buffer;
             }
+            if (i + 1 >= bufSize)
+            {
+                bufSize *= 2;
+                buffer = realloc(buffer, bufSize);
+                if (!buffer)
+                {
+                    fprintf(stderr, "enc_server: memory reallocation failed\n");
+                    exit(1);
+                }
+            }
+            buffer[i++] = recvBuf[j];
         }
-        buffer[i++] = character;
     }
+
     buffer[i] = '\0';
     return buffer;
 }
@@ -133,6 +139,15 @@ int main(int argc, char *argv[])
     {
         error("ERROR opening socket");
     }
+    int reuseSocket = 1;
+    if (setsockopt(listenSocket,
+                   SOL_SOCKET,
+                   SO_REUSEADDR,
+                   &reuseSocket,
+                   sizeof(reuseSocket)) < 0)
+    {
+        error("ERROR on setsockopt");
+    }
 
     setupAddressStruct(&serverAddress, atoi(argv[1]));
 
@@ -193,7 +208,6 @@ int main(int argc, char *argv[])
             }
 
             char *ciphertext = encryptText(plaintext, key);
-            printf("ciphertext generated: %s\n", ciphertext);
             free(plaintext);
             free(key);
 

@@ -25,7 +25,7 @@ void setupAddressStruct(struct sockaddr_in *address, int portNumber)
 
 static char *readLine(int sockFD)
 {
-    size_t bufSize = 1024;
+    size_t bufSize = 32;
     char *buffer = malloc(bufSize);
     if (!buffer)
     {
@@ -34,25 +34,32 @@ static char *readLine(int sockFD)
     }
 
     size_t i = 0;
-    char character;
-    while (recv(sockFD, &character, 1, 0) == 1)
+    char recvBuf[1024];
+    ssize_t bytesRead;
+
+    while ((bytesRead = recv(sockFD, recvBuf, sizeof(recvBuf), 0)) > 0)
     {
-        if (character == '\n')
+        for (ssize_t j = 0; j < bytesRead; j++)
         {
-            break;
-        }
-        if (i >= bufSize - 1)
-        {
-            bufSize *= 2;
-            buffer = realloc(buffer, bufSize);
-            if (!buffer)
+            if (recvBuf[j] == '\n')
             {
-                fprintf(stderr, "dec_server: memory reallocation failed\n");
-                exit(1);
+                buffer[i] = '\0';
+                return buffer;
             }
+            if (i + 1 >= bufSize)
+            {
+                bufSize *= 2;
+                buffer = realloc(buffer, bufSize);
+                if (!buffer)
+                {
+                    fprintf(stderr, "dec_server: memory reallocation failed\n");
+                    exit(1);
+                }
+            }
+            buffer[i++] = recvBuf[j];
         }
-        buffer[i++] = character;
     }
+
     buffer[i] = '\0';
     return buffer;
 }
